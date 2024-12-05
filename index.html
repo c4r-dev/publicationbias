@@ -7,7 +7,7 @@
     <title>Intuition for Publication Bias</title>
 
     <!-- <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script> -->
-    <script src="https://raw.githubusercontent.com/fiscdupenn/publicationbias/main/pyodide/pyodide.js"></script>
+    <script src="https://raw.githubusercontent.com/c4r-dev/publicationbias/main/pyodide/pyodide.js"></script>
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
@@ -99,7 +99,7 @@
             const effectValue = document.getElementById("effect-value");
 
             const pyodide = await loadPyodide({
-                indexURL: "https://raw.githubusercontent.com/fiscdupenn/publicationbias/main/pyodide/",
+                indexURL: "https://raw.githubusercontent.com/c4r-dev/publicationbias/main/pyodide/",
             });
 
             await pyodide.loadPackage("micropip");
