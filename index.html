@@ -158,10 +158,10 @@ def plot_bias(s2, effect):
     dark_blue = "#1f77b4"
     dark_orange = "#ff7f0e"
 
-    x1 = np.linspace(-10, 10, 500)
+    x1 = np.linspace(-10, 10, 85)
     y1 = np.exp(-0.5 * (x1 - effect)**2) / np.sqrt(2 * np.pi)
 
-    x2 = np.linspace(-10, 10, 500)
+    x2 = np.linspace(-10, 10, 85)
     y2 = np.exp(-0.5 * (x2 - effect)**2)
     y2[x2 < 2] *= s
     y2 /= np.trapz(y2, x2)
