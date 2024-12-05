@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intuition for Publication Bias</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.0/full/pyodide.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh; /* Ensure content stays visible during zooming */
+            overflow-y: auto; /* Allow vertical scrolling if needed */
+        }
+
+        h1 {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 1.5rem;
+        }
+
+        #slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        input[type="range"] {
+            width: 80%;
+            max-width: 400px;
+        }
+
+        label {
+            font-size: 1rem;
+        }
+
+        #plot {
+            width: 90%;
+            max-width: 800px; /* Force max width */
+            height: calc(85vh); /* Ensure the plot dynamically fits */
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Intuition: this is how the literature is affected by publication bias and effect size</h1>
+    <div id="slider-container">
+        <label for="effect-slider">Effect size (mu/std): <span id="effect-value">0</span></label>
+        <input type="range" id="effect-slider" min="-3" max="3" step="0.01" value="0">
+        <label for="s2-slider">% of non-significant/ negative effects authors choose to not publish: <span id="s2-value">0</span></label>
+        <input type="range" id="s2-slider" min="0" max="1" step="0.01" value="0">
+    </div>
+    <p>If effect size is zero, all findings are false positives or false negatives, choose a real effect.</p>
+    
+    <div id="plot"></div>
+    <p>If effect size is zero, all findings are false positives or false negatives, choose a real effect.</p>
+    
+    <script type="text/javascript">
+        async function main() {
+            const plotDiv = document.getElementById("plot");
+            const s2Slider = document.getElementById("s2-slider");
+            const effectSlider = document.getElementById("effect-slider");
+            const s2Value = document.getElementById("s2-value");
+            const effectValue = document.getElementById("effect-value");
+
+            const pyodide = await loadPyodide();
+
+            await pyodide.loadPackage("micropip");
+            const micropip = pyodide.pyimport("micropip");
+            await micropip.install("pandas");
+            await micropip.install("numpy");
+            await micropip.install("plotly");
+
+            async function updatePlot(s2, effect) {
+                const pythonCode = `
+import numpy as np
+import plotly.graph_objects as go
+import plotly.subplots as sp
+import json
+
+def numpy_to_list(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: numpy_to_list(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [numpy_to_list(item) for item in obj]
+    else:
+        return obj
+
+def plot_bias(s2, effect):
+    s = 1 - s2
+    dark_blue = "#1f77b4"
+    dark_orange = "#ff7f0e"
+
+    # Generate x values
+    x1 = np.linspace(-10, 10, 500)
+    y1 = np.exp(-0.5 * (x1 - effect)**2) / np.sqrt(2 * np.pi)  # Modified equation
+
+    x2 = np.linspace(-10, 10, 500)
+    y2 = np.exp(-0.5 * (x2 - effect)**2)  # Modified equation
+    y2[x2 < 2] *= s
+    y2 /= np.trapz(y2, x2)
+
+    # Compute integrals for bar graphs
+    bins = [-10, -1.96, 0, 1.96, 10]
+    blue_integrals = [np.trapz(y1[(x1 >= bins[i]) & (x1 < bins[i + 1])], x1[(x1 >= bins[i]) & (x1 < bins[i + 1])]) for i in range(4)]
+    orange_integrals = [np.trapz(y2[(x2 >= bins[i]) & (x2 < bins[i + 1])], x2[(x2 >= bins[i]) & (x2 < bins[i + 1])]) for i in range(4)]
+
+    # Normalize to sum to 1
+    bar_y1 = blue_integrals / np.sum(blue_integrals)
+    bar_y2 = orange_integrals / np.sum(orange_integrals)
+
+    # Bar x labels
+    bar_x = ["p<0.05, neg", "NS, neg", "NS, pos", "p<0.05, pos"]
+
+    # Create the subplots
+    fig = sp.make_subplots(rows=4, cols=1, shared_xaxes=False, vertical_spacing=0.2,
+                           subplot_titles=("Distribution of Real Effects",
+                                           "Distribution of Published Papers",
+                                           "Significance of Experiments",
+                                           "Significance of Published Papers"))
+
+    # Compute average Z-score for the first graph
+    avg_z1 = np.trapz(y1 * x1, x1) / np.trapz(y1, x1)
+    avg_text1 = go.Annotation(
+        x=10, y=max(y1), text=f"Avg Z: {avg_z1:.2f}", showarrow=False,
+        font=dict(color="red", size=12), xanchor="right", yanchor="top"
+    )
+    
+    # Plot the first graph
+    fig.add_trace(go.Scatter(x=x1, y=y1, mode='lines', line=dict(color=dark_blue), name="Real Effects"), row=1, col=1)
+
+    # Compute average Z-score for the second graph
+    avg_z2 = np.trapz(y2 * x2, x2) / np.trapz(y2, x2)
+    avg_text2 = go.Annotation(
+        x=10, y=max(y2), text=f"Avg Z: {avg_z2:.2f}", showarrow=False,
+        font=dict(color="red", size=12), xanchor="right", yanchor="top"
+    )
+    
+    # Plot the second graph
+    fig.add_trace(go.Scatter(x=x2, y=y2, mode='lines', line=dict(color=dark_orange), name="Published Papers"), row=2, col=1)
+
+    # Plot the first bar graph
+    fig.add_trace(go.Bar(x=bar_x, y=bar_y1, marker_color=dark_blue, name="Significance of Experiments"), row=3, col=1)
+
+    # Plot the second bar graph
+    fig.add_trace(go.Bar(x=bar_x, y=bar_y2, marker_color=dark_orange, name="Significance of Published Papers"), row=4, col=1)
+
+    # Add average Z-score annotations to the layout
+    fig.add_annotation(avg_text1, row=1, col=1)
+    fig.add_annotation(avg_text2, row=2, col=1)
+    
+    # Layout adjustments
+    fig.update_layout(
+        height=900,
+        width=800,
+        margin=dict(t=100, b=50, l=50, r=50),
+        title_x=0.5,
+        showlegend=False
+    )
+
+    fig.update_xaxes(title_text="Z-score (mean/std)", range=[-10, 10], row=1, col=1)
+    fig.update_xaxes(title_text="Z-score (mean/std)", range=[-10, 10], row=2, col=1)
+
+    fig.update_yaxes(showticklabels=True, nticks=2, row=1, col=1)
+    fig.update_yaxes(showticklabels=True, nticks=2, row=2, col=1)
+    fig.update_yaxes(showticklabels=True, nticks=2, row=3, col=1)
+    fig.update_yaxes(showticklabels=True, nticks=2, row=4, col=1)
+
+    # Return the figure as a JSON object
+    fig_dict = fig.to_dict()
+    return json.dumps(numpy_to_list(fig_dict))
+
+plot_bias(${s2}, ${effect})
+                `;
+                try {
+                    const plotJSON = await pyodide.runPythonAsync(pythonCode);
+                    const plotData = JSON.parse(plotJSON);
+
+                    Plotly.newPlot(plotDiv, plotData.data, plotData.layout, { responsive: true });
+                } catch (error) {
+                    console.error("Error generating Plotly plot:", error);
+                    plotDiv.innerHTML = `<p class="error">Error: Unable to generate plot. Check console for details.</p>`;
+                }
+            }
+
+            s2Slider.addEventListener("input", async () => {
+                const s2 = s2Slider.value;
+                s2Value.textContent = s2;
+                const effect = effectSlider.value;
+                await updatePlot(s2, effect);
+            });
+
+            effectSlider.addEventListener("input", async () => {
+                const effect = effectSlider.value;
+                effectValue.textContent = effect;
+                const s2 = s2Slider.value;
+                await updatePlot(s2, effect);
+            });
+
+            // Initial plot
+            await updatePlot(s2Slider.value, effectSlider.value);
+
+            // Force responsiveness
+            window.addEventListener("resize", () => {
+                Plotly.Plots.resize(plotDiv);
+            });
+        }
+
+        main();
+    </script>
+</body>
+</html>
+
