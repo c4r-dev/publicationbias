@@ -10,7 +10,7 @@
     <script src="https://c4r-dev.github.io/publicationbias/pyodide/pyodide.js"></script>
 
     <!-- <script src="https://cdn.plot.ly/plotly-latest.min.js"></script> -->
-     
+
     <style>
         body {
             margin: 0;
@@ -110,7 +110,8 @@
             
             await pyodide.loadPackage({
                 name: "plotly",
-                url: "https://c4r-dev.github.io/publicationbias/pyodide/plotly-5.13.0-py2.py3-none-any.whl",
+                // url: "https://c4r-dev.github.io/publicationbias/pyodide/plotly-5.13.0-py2.py3-none-any.whl",
+                indexURL: "https://c4r-dev.github.io/publicationbias/pyodide/",
             });
             // const micropip = pyodide.pyimport("micropip");
             // await micropip.install("plotly");
