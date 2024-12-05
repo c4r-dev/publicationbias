@@ -5,7 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Intuition for Publication Bias</title>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+    <!-- <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script> -->
+    <script src="https://raw.githubusercontent.com/fiscdupenn/publicationbias/main/pyodide/pyodide.js"></script>
+
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body {
@@ -95,7 +98,9 @@
             const s2Value = document.getElementById("s2-value");
             const effectValue = document.getElementById("effect-value");
 
-            const pyodide = await loadPyodide();
+            const pyodide = await loadPyodide({
+                indexURL: "https://raw.githubusercontent.com/fiscdupenn/publicationbias/main/pyodide/",
+            });
 
             await pyodide.loadPackage("micropip");
             await pyodide.loadPackage("pandas");
