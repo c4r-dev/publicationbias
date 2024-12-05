@@ -9,7 +9,8 @@
     <!-- <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script> -->
     <script src="https://c4r-dev.github.io/publicationbias/pyodide/pyodide.js"></script>
 
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- <script src="https://cdn.plot.ly/plotly-latest.min.js"></script> -->
+     
     <style>
         body {
             margin: 0;
@@ -106,8 +107,13 @@
             await pyodide.loadPackage("micropip");
             await pyodide.loadPackage("pandas");
             await pyodide.loadPackage("numpy")
-            const micropip = pyodide.pyimport("micropip");
-            await micropip.install("plotly");
+            
+            await pyodide.loadPackage({
+                name: "plotly",
+                url: "https://c4r-dev.github.io/publicationbias/pyodide/plotly-5.13.0-py2.py3-none-any.whl",
+            });
+            // const micropip = pyodide.pyimport("micropip");
+            // await micropip.install("plotly");
 
             const pythonCode = `
 import numpy as np
