@@ -107,14 +107,13 @@
             await pyodide.loadPackage("micropip");
             await pyodide.loadPackage("pandas");
             await pyodide.loadPackage("numpy")
-            
+
             await pyodide.loadPackage({
                 name: "plotly",
-                // url: "https://c4r-dev.github.io/publicationbias/pyodide/plotly-5.13.0-py2.py3-none-any.whl",
-                indexURL: "https://c4r-dev.github.io/publicationbias/pyodide/",
+                url: "https://c4r-dev.github.io/publicationbias/pyodide/plotly-5.24.1-py3-none-any.whl",
             });
-            // const micropip = pyodide.pyimport("micropip");
-            // await micropip.install("plotly");
+
+            console.log("Plotly loaded");
 
             const pythonCode = `
 import numpy as np
