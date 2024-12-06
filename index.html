@@ -7,10 +7,7 @@
     <title>Intuition for Publication Bias</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 
-
-    <!-- <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script> -->
     <script src="https://c4r-dev.github.io/publicationbias/pyodide/pyodide.js"></script>
-
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
     <style>
@@ -78,10 +75,32 @@
                 font-size: 0.8rem;
             }
         }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #loading-overlay p {
+            font-size: 1.5rem;
+            color: #333;
+        }
     </style>
 </head>
 
 <body>
+    <div id="loading-overlay">
+        <p>Loading, please wait...</p>
+    </div>
     <h1>Intuition: How Publication Bias Affects Literature</h1>
     <div id="slider-container">
         <label for="effect-slider">Effect size (mu/std): <span id="effect-value">0</span></label>
@@ -95,18 +114,21 @@
 
     <script type="text/javascript">
         async function main() {
+            const loadingOverlay = document.getElementById("loading-overlay");
             const plotDiv = document.getElementById("plot");
             const s2Slider = document.getElementById("s2-slider");
             const effectSlider = document.getElementById("effect-slider");
             const s2Value = document.getElementById("s2-value");
             const effectValue = document.getElementById("effect-value");
 
+            // Show loading overlay
+            loadingOverlay.style.display = "flex";
+
             const pyodide = await loadPyodide({
                 indexURL: "https://c4r-dev.github.io/publicationbias/pyodide/",
             });
             console.log("Pyodide loaded successfully!");
 
-            // Load default packages first
             try {
                 await pyodide.loadPackage("micropip");
                 await pyodide.loadPackage("pandas");
@@ -116,28 +138,13 @@
                 console.error("Error loading default packages:", error);
             }
 
-            // Try loading Plotly
             try {
-                // Attempt to load from default Pyodide package manager
                 const micropip = pyodide.pyimport("micropip");
                 await micropip.install("plotly");
-                console.log("Default Plotly package loaded!");
+                console.log("Plotly package loaded!");
             } catch (error) {
-                console.warn("Failed to load default Plotly package. Trying custom URL...");
-
-                // Custom Plotly package loading
-                try {
-                    await pyodide.loadPackage({
-                        name: "plotly",
-                        url: "https://c4r-dev.github.io/publicationbias/pyodide/",
-                    });
-                    console.log("Custom Plotly package loaded!");
-                } catch (customError) {
-                    console.error("Failed to load Plotly package from custom URL:", customError);
-                    throw new Error("Could not load Plotly. Please check the package URL and format.");
-                }
+                console.error("Error loading Plotly:", error);
             }
-
 
             const pythonCode = `
 import numpy as np
@@ -237,6 +244,9 @@ def plot_bias(s2, effect):
             });
 
             await updatePlot(parseFloat(s2Slider.value), parseFloat(effectSlider.value));
+
+            // Hide loading overlay once plots are rendered
+            loadingOverlay.style.display = "none";
             window.addEventListener("resize", () => Plotly.Plots.resize(plotDiv));
         }
 

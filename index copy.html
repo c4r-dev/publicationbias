@@ -5,8 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Intuition for Publication Bias</title>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+
+    <!-- <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script> -->
+    <script src="https://c4r-dev.github.io/publicationbias/pyodide/pyodide.js"></script>
+
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
     <style>
         body {
             margin: 0;
@@ -95,13 +101,43 @@
             const s2Value = document.getElementById("s2-value");
             const effectValue = document.getElementById("effect-value");
 
-            const pyodide = await loadPyodide();
+            const pyodide = await loadPyodide({
+                indexURL: "https://c4r-dev.github.io/publicationbias/pyodide/",
+            });
+            console.log("Pyodide loaded successfully!");
 
-            await pyodide.loadPackage("micropip");
-            await pyodide.loadPackage("pandas");
-            await pyodide.loadPackage("numpy")
-            const micropip = pyodide.pyimport("micropip");
-            await micropip.install("plotly");
+            // Load default packages first
+            try {
+                await pyodide.loadPackage("micropip");
+                await pyodide.loadPackage("pandas");
+                await pyodide.loadPackage("numpy");
+                console.log("Default packages loaded!");
+            } catch (error) {
+                console.error("Error loading default packages:", error);
+            }
+
+            // Try loading Plotly
+            try {
+                // Attempt to load from default Pyodide package manager
+                const micropip = pyodide.pyimport("micropip");
+                await micropip.install("plotly");
+                console.log("Default Plotly package loaded!");
+            } catch (error) {
+                console.warn("Failed to load default Plotly package. Trying custom URL...");
+
+                // Custom Plotly package loading
+                try {
+                    await pyodide.loadPackage({
+                        name: "plotly",
+                        url: "https://c4r-dev.github.io/publicationbias/pyodide/",
+                    });
+                    console.log("Custom Plotly package loaded!");
+                } catch (customError) {
+                    console.error("Failed to load Plotly package from custom URL:", customError);
+                    throw new Error("Could not load Plotly. Please check the package URL and format.");
+                }
+            }
+
 
             const pythonCode = `
 import numpy as np
